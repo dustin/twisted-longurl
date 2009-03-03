@@ -1,4 +1,10 @@
+import urllib
 import xml.dom.minidom
+
+from twisted.internet import defer
+from twisted.web import client
+
+BASE_URL = "http://api.longurl.org/v1/"
 
 class Service(object):
     "An individual service handled by longurl."
@@ -34,3 +40,19 @@ class ExpandedURL(object):
     def __repr__(self):
         return "<<ExpandedURL title=%s url=%s>>" % (self.title, self.url)
 
+class LongUrl(object):
+
+    def __init__(self, agent='twisted-longurl'):
+        self.agent = agent
+
+    def getServices(self):
+        """Get a dict of known services.
+
+        Key is service name, value is a Service object."""
+
+        rv = defer.Deferred()
+        d = client.getPage(BASE_URL + 'services', agent=self.agent)
+        d.addCallback(lambda res: rv.callback(Services(res)))
+        d.addErrback(lambda e: rv.errback(e))
+
+        return rv
