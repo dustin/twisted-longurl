@@ -56,3 +56,14 @@ class LongUrl(object):
         d.addErrback(lambda e: rv.errback(e))
 
         return rv
+
+    def expand(self, u):
+        """Expand a URL."""
+
+        rv = defer.Deferred()
+        d = client.getPage(BASE_URL + 'expand?url=' + urllib.quote(u),
+                           agent=self.agent)
+        d.addCallback(lambda res: rv.callback(ExpandedURL(res)))
+        d.addErrback(lambda e: rv.errback(e))
+
+        return rv
