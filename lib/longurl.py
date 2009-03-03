@@ -22,3 +22,15 @@ class Services(dict):
         for r in document.getElementsByTagName('service'):
             s=Service(r)
             self[s.name] = s
+
+class ExpandedURL(object):
+
+    def __init__(self, content):
+        document=xml.dom.minidom.parseString(content)
+        assert document.firstChild.nodeName == "response"
+        self.title = document.getElementsByTagName('title')[0].firstChild.data
+        self.url = document.getElementsByTagName('long_url')[0].firstChild.data
+
+    def __repr__(self):
+        return "<<ExpandedURL title=%s url=%s>>" % (self.title, self.url)
+
