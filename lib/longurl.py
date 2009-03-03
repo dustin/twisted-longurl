@@ -42,8 +42,9 @@ class ExpandedURL(object):
 
 class LongUrl(object):
 
-    def __init__(self, agent='twisted-longurl'):
+    def __init__(self, agent='twisted-longurl', client=client):
         self.agent = agent
+        self.client = client
 
     def getServices(self):
         """Get a dict of known services.
@@ -51,7 +52,7 @@ class LongUrl(object):
         Key is service name, value is a Service object."""
 
         rv = defer.Deferred()
-        d = client.getPage(BASE_URL + 'services', agent=self.agent)
+        d = self.client.getPage(BASE_URL + 'services', agent=self.agent)
         d.addCallback(lambda res: rv.callback(Services(res)))
         d.addErrback(lambda e: rv.errback(e))
 
@@ -61,8 +62,8 @@ class LongUrl(object):
         """Expand a URL."""
 
         rv = defer.Deferred()
-        d = client.getPage(BASE_URL + 'expand?url=' + urllib.quote(u),
-                           agent=self.agent)
+        d = self.client.getPage(BASE_URL + 'expand?url=' + urllib.quote(u),
+                                agent=self.agent)
         d.addCallback(lambda res: rv.callback(ExpandedURL(res)))
         d.addErrback(lambda e: rv.errback(e))
 
