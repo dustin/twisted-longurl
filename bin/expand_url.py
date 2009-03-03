@@ -8,7 +8,8 @@ from twisted.internet import reactor
 import longurl
 
 def cb(s):
-    print s
+    print "Title: %s" % s.title.encode('utf-8')
+    print s.url.encode('utf-8')
     reactor.stop()
 
 def go(u):
