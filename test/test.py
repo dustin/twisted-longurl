@@ -88,6 +88,14 @@ class ExpansionRequestTest(unittest.TestCase):
         d.addErrback(lambda e: self.assertTrue(e.type == xml.parsers.expat.ExpatError))
         fh.d.callback("<not><html>")
 
+    def testNullResponse(self):
+        fh = FakeHTTP()
+        lu = longurl.LongUrl(client=fh)
+        d = lu.expand('http://whatever/')
+        d.addCallback(lambda x: self.fail("boo"))
+        d.addErrback(lambda e: self.assertEqual(e.type, TypeError))
+        fh.d.callback(None)
+
     def testFailedRequest(self):
         fh = FakeHTTP()
         lu = longurl.LongUrl(client=fh)
