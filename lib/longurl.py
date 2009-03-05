@@ -6,6 +6,9 @@ from twisted.web import client
 
 BASE_URL = "http://api.longurl.org/v1/"
 
+class ResponseFailure(Exception):
+    pass
+
 class Service(object):
     "An individual service handled by longurl."
 
@@ -34,6 +37,9 @@ class ExpandedURL(object):
     def __init__(self, content):
         document=xml.dom.minidom.parseString(content)
         assert document.firstChild.nodeName == "response"
+        errMsgs = document.getElementsByTagName('messages')
+        if errMsgs:
+            raise ResponseFailure(errMsgs[0].firstChild.data)
         try:
             self.title = document.getElementsByTagName('title')[0].firstChild.data
         except IndexError:

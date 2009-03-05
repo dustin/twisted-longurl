@@ -119,6 +119,20 @@ class ExpansionRequestTest(unittest.TestCase):
         d.addErrback(lambda e: self.assertTrue(e.type == RuntimeError))
         fh.d.errback(RuntimeError("Blah"))
 
+    def testResponseFailure(self):
+        fh = FakeHTTP()
+        lu = longurl.LongUrl(client=fh)
+        d = lu.expand('http://whatever/')
+        d.addCallback(lambda x: self.fail("boo"))
+        d.addErrback(lambda e: self.assertEquals(longurl.ResponseFailure, e.type))
+        fh.d.callback("""<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	<messages>
+		<error>Unsupported service.</error>
+	</messages>
+</response>
+""")
+
     def testOKRequest(self):
         fh = FakeHTTP()
         lu = longurl.LongUrl(client=fh)
