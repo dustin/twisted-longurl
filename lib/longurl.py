@@ -34,7 +34,10 @@ class ExpandedURL(object):
     def __init__(self, content):
         document=xml.dom.minidom.parseString(content)
         assert document.firstChild.nodeName == "response"
-        self.title = document.getElementsByTagName('title')[0].firstChild.data
+        try:
+            self.title = document.getElementsByTagName('title')[0].firstChild.data
+        except IndexError:
+            self.title = None
         self.url = document.getElementsByTagName('long_url')[0].firstChild.data
 
     def __repr__(self):

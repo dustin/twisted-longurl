@@ -96,6 +96,21 @@ class ExpansionRequestTest(unittest.TestCase):
         d.addErrback(lambda e: self.assertEqual(e.type, TypeError))
         fh.d.callback(None)
 
+    def testBrokenResponse(self):
+        fh = FakeHTTP()
+        lu = longurl.LongUrl(client=fh)
+        d = lu.expand('http://whatever/')
+        def verify(s):
+            self.assertTrue(s.title is None)
+            self.assertEquals('http://some/crap', s.url)
+
+        # d.addErrback(lambda e: self.fail("should work"))
+        fh.d.callback("""<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	<long_url><![CDATA[http://some/crap]]></long_url>
+</response>
+""")
+
     def testFailedRequest(self):
         fh = FakeHTTP()
         lu = longurl.LongUrl(client=fh)
