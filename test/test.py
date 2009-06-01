@@ -7,6 +7,7 @@ import xml
 
 from twisted.trial import unittest
 from twisted.internet import defer
+from twisted.web import error
 
 sys.path.extend(['lib', '../lib'])
 import longurl
@@ -16,7 +17,7 @@ class ParsingTest(unittest.TestCase):
     def __parse(self, fn, parser):
         with open("../" + fn) as f:
             return parser(f.read())
-    
+
     def __parse_l(self, fn, parser):
         f = open('../' + fn)
         document=xml.dom.minidom.parseString(f.read())
@@ -26,7 +27,7 @@ class ParsingTest(unittest.TestCase):
             raise ResponseFailure(errMsgs[0].firstChild.data)
         self.url = document.getElementsByTagName('long_url')[0].firstChild.data
         return parser(self.url)
-        
+
     def testServiceList(self):
         s = self.__parse("services.xml", longurl.Services)
         self.assertEquals(109, len(s))
@@ -51,7 +52,7 @@ class FakeHTTP(object):
 
     def getPage(self, *args, **kwargs):
         return self.d
-   
+
 def load_data(fn):
     with open("../" + fn) as f:
         return f.read()
@@ -94,19 +95,24 @@ class ExpansionRequestTest(unittest.TestCase):
         fh = FakeHTTP()
         lu = longurl.LongUrl(client=fh)
         d = lu.expand('http://whatever/')
-        d.addCallback(lambda x: self.fail("boo"))
-        d.addErrback(lambda e: self.assertTrue(e.type == RuntimeError))
-        d.errback(RuntimeError('Blah'))
-        
-    def testOKRequest(self):
+        d.addCallback(lambda s: self.assertEquals('http://whatever/', s.url))
+        d.addErrback(lambda e: self.fail("should not fail."))
+        fh.d.errback(RuntimeError('Blah'))
+
+    def testRedirection(self):
         fh = FakeHTTP()
         lu = longurl.LongUrl(client=fh)
-        d = lu.expand('http://tinyurl.com/dehdc')
-        def checkResult(s):
-            self.assertEquals(
-                'http://www.google.com',
-                s.url)
+        d = lu.expand('http://whatever/')
+        def checkResults(s):
+            self.assertEquals('http://www.spy.net/', s.url)
+        d.addCallback(checkResults)
+        fh.d.errback(error.PageRedirect("307", location="http://www.spy.net/"))
 
-        d.addErrback(checkResult)
-        d.addErrback(lambda e: self.fail(str(e)))
-        fh.d.callback(load_data("expand.xml"))
+    def test200(self):
+        fh = FakeHTTP()
+        lu = longurl.LongUrl(client=fh)
+        d = lu.expand('http://www.google.com/')
+        def checkResults(s):
+            self.assertEquals('http://www.google.com/', s.url)
+        d.addCallback(checkResults)
+        fh.d.callback("Good!")

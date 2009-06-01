@@ -73,8 +73,8 @@ class LongUrl(object):
 
         rv = defer.Deferred()
         d = self.client.getPage(u, followRedirect=0)
+        d.addCallback(lambda p: rv.callback(ExpandedURL(u)))
         d.addErrback(gotRedirect)
         d.addErrback(gotError)
-        d.addCallback(lambda p: rv.callback(ExpandedURL(u)))
         return rv
 
