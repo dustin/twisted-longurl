@@ -2,7 +2,9 @@ import urllib
 import xml.dom.minidom
 
 from twisted.internet import defer
-from twisted.web import client
+from twisted.web import client, error
+from twisted import internet
+from twisted.python import failure
 
 BASE_URL = "http://api.longurl.org/v1/"
 
@@ -34,20 +36,12 @@ class Services(dict):
 
 class ExpandedURL(object):
 
-    def __init__(self, content):
-        document=xml.dom.minidom.parseString(content)
-        assert document.firstChild.nodeName == "response"
-        errMsgs = document.getElementsByTagName('messages')
-        if errMsgs:
-            raise ResponseFailure(errMsgs[0].firstChild.data)
-        try:
-            self.title = document.getElementsByTagName('title')[0].firstChild.data
-        except IndexError:
-            self.title = None
-        self.url = document.getElementsByTagName('long_url')[0].firstChild.data
+    def __init__(self, url):
+        self.url = url
 
     def __repr__(self):
-        return "<<ExpandedURL title=%s url=%s>>" % (self.title, self.url)
+        return "<<ExpandedURL url=%s>>" % (self.url, )
+
 
 class LongUrl(object):
 
@@ -70,10 +64,17 @@ class LongUrl(object):
     def expand(self, u):
         """Expand a URL."""
 
-        rv = defer.Deferred()
-        d = self.client.getPage(BASE_URL + 'expand?url=' + urllib.quote(u),
-                                agent=self.agent)
-        d.addCallback(lambda res: rv.callback(ExpandedURL(res)))
-        d.addErrback(lambda e: rv.errback(e))
+        def gotRedirect(failure):
+            failure.trap(error.PageRedirect)
+            rv.callback(ExpandedURL(failure.value.location))
 
+        def gotError(failure):
+            rv.callback(ExpandedURL(u))
+
+        rv = defer.Deferred()
+        d = self.client.getPage(u, followRedirect=0)
+        d.addErrback(gotRedirect)
+        d.addErrback(gotError)
+        d.addCallback(lambda p: rv.callback(ExpandedURL(u)))
         return rv
+
